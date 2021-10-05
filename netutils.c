@@ -157,20 +157,34 @@ void nft_create_ctx(void) {
     //     return;
     // }
 
-    sprintf(g_nft_cmdbuffer, "get element %s {0x00000000}", g_set_setname4);
-    g_nft_cmdbuffer_start = g_nft_cmdbuffer + 16 + strlen(g_set_setname4);
+    if (strlen(g_set_setname4) > 0) {
+        sprintf(g_nft_cmdbuffer, "get element %s {0x00000000}", g_set_setname4);
+        g_nft_cmdbuffer_start = g_nft_cmdbuffer + 16 + strlen(g_set_setname4);
+    }
 
-    sprintf(g_nft_cmdbuffer6, "get element %s {0x00000000000000000000000000000000}", g_set_setname6);
-    g_nft_cmdbuffer6_start = g_nft_cmdbuffer + 16 + strlen(g_set_setname6);
+    if (strlen(g_set_setname6) > 0) {
+        sprintf(g_nft_cmdbuffer6, "get element %s {0x00000000000000000000000000000000}", g_set_setname6);
+        g_nft_cmdbuffer6_start = g_nft_cmdbuffer + 16 + strlen(g_set_setname6);
+    }
 }
 
 bool nft_addr_is_exists(const void *addr_prt, bool is_ipv4) {
+    if (g_nft == NULL) {
+        return false;
+    }
+
     void *ipaddr_buf = is_ipv4 ? g_nft_cmdbuffer_start : g_nft_cmdbuffer6_start;
     const char *addr = addr_prt;
 
     if (is_ipv4) {
+        if (g_nft_cmdbuffer_start == NULL) {
+            return false;
+        }
         sprintf(g_hex_string, "%02x%02x%02x%02x", addr[0], addr[1], addr[2], addr[3]);
     } else {
+        if (g_nft_cmdbuffer6_start == NULL) {
+            return false;
+        }
         sprintf(g_hex_string, "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
           addr[0], addr[1], addr[2], addr[3],
           addr[4], addr[5], addr[6], addr[7],
