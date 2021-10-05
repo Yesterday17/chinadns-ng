@@ -81,6 +81,6 @@ typedef struct {
 bool dns_query_check(const void *packet_buf, ssize_t packet_len, char *name_buf, uint16_t *qtype);
 
 /* check dns reply, `name_buf` used to get domain name, return true if accept */
-bool dns_reply_check(const void *packet_buf, ssize_t packet_len, char *name_buf, bool chk_ipset);
+bool dns_reply_check(const void *packet_buf, ssize_t packet_len, char *name_buf, bool check_set);
 
 #endif

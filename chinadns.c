@@ -71,8 +71,8 @@ static const char *g_chnlist_fname                                    = NULL; /*
 static bool        g_gfwlist_first                                    = true; /* match gfwlist dnamelist first */
 static bool        g_no_ipv6_query                                    = false; /* disable ip6-addr query (AAAA) */
        bool        g_noip_as_chnip                                    = false; /* default: see as not-china-ip */
-       char        g_ipset_setname4[IPSET_MAXNAMELEN]                 = "chnroute"; /* ipset setname for ipv4 */
-       char        g_ipset_setname6[IPSET_MAXNAMELEN]                 = "chnroute6"; /* ipset setname for ipv6 */
+       char        g_set_setname4[SET_MAXNAMELEN]                   = "ip global chnroute"; /* nftables setname for ipv4 */
+       char        g_set_setname6[SET_MAXNAMELEN]                   = "ip6 global chnroute6"; /* nftables setname for ipv6 */
 static char        g_bind_ipstr[INET6_ADDRSTRLEN]                     = "127.0.0.1";
 static portno_t    g_bind_portno                                      = 65353;
 static skaddr6_t   g_bind_skaddr                                      = {0};
@@ -94,8 +94,8 @@ static void print_command_help(void) {
            " -l, --bind-port <port-number>        listen port number, default: 65353\n"
            " -c, --china-dns <ip[#port],...>      china dns server, default: <114DNS>\n"
            " -t, --trust-dns <ip[#port],...>      trust dns server, default: <GoogleDNS>\n"
-           " -4, --ipset-name4 <ipv4-setname>     ipset ipv4 set name, default: chnroute\n"
-           " -6, --ipset-name6 <ipv6-setname>     ipset ipv6 set name, default: chnroute6\n"
+           " -4, --nft-set-name4 <ipv4-setname>   nftables ipv4 set name, default: ip global chnroute\n"
+           " -6, --nft-set-name6 <ipv6-setname>   nftables ipv6 set name, default: ip6 global chnroute6\n"
            " -g, --gfwlist-file <file-path>       filepath of gfwlist, '-' indicate stdin\n"
            " -m, --chnlist-file <file-path>       filepath of chnlist, '-' indicate stdin\n"
            " -o, --timeout-sec <query-timeout>    timeout of the upstream dns, default: 5\n"
@@ -161,8 +161,8 @@ static void parse_command_args(int argc, char *argv[]) {
         {"bind-port",     required_argument, NULL, 'l'},
         {"china-dns",     required_argument, NULL, 'c'},
         {"trust-dns",     required_argument, NULL, 't'},
-        {"ipset-name4",   required_argument, NULL, '4'},
-        {"ipset-name6",   required_argument, NULL, '6'},
+        {"nft-set-name4", required_argument, NULL, '4'},
+        {"nft-set-name6", required_argument, NULL, '6'},
         {"gfwlist-file",  required_argument, NULL, 'g'},
         {"chnlist-file",  required_argument, NULL, 'm'},
         {"timeout-sec",   required_argument, NULL, 'o'},
@@ -213,18 +213,18 @@ static void parse_command_args(int argc, char *argv[]) {
                 trustdns_optarg = optarg;
                 break;
             case '4':
-                if (strlen(optarg) + 1 > IPSET_MAXNAMELEN) {
-                    printf("[parse_command_args] ipset setname max length is 31: %s\n", optarg);
+                if (strlen(optarg) + 1 > SET_MAXNAMELEN) {
+                    printf("[parse_command_args] nftables setname max length is 31: %s\n", optarg);
                     goto PRINT_HELP_AND_EXIT;
                 }
-                strcpy(g_ipset_setname4, optarg);
+                strcpy(g_set_setname4, optarg);
                 break;
             case '6':
-                if (strlen(optarg) + 1 > IPSET_MAXNAMELEN) {
-                    printf("[parse_command_args] ipset setname max length is 31: %s\n", optarg);
+                if (strlen(optarg) + 1 > SET_MAXNAMELEN) {
+                    printf("[parse_command_args] nftables setname max length is 31: %s\n", optarg);
                     goto PRINT_HELP_AND_EXIT;
                 }
-                strcpy(g_ipset_setname6, optarg);
+                strcpy(g_set_setname6, optarg);
                 break;
             case 'g':
                 if (strlen(optarg) + 1 > PATH_MAX) {
@@ -504,8 +504,8 @@ int main(int argc, char *argv[]) {
     if (strlen(g_remote_ipports[CHINADNS2_IDX])) LOGINF("[main] chinadns server#2: %s", g_remote_ipports[CHINADNS2_IDX]);
     if (strlen(g_remote_ipports[TRUSTDNS1_IDX])) LOGINF("[main] trustdns server#1: %s", g_remote_ipports[TRUSTDNS1_IDX]);
     if (strlen(g_remote_ipports[TRUSTDNS2_IDX])) LOGINF("[main] trustdns server#2: %s", g_remote_ipports[TRUSTDNS2_IDX]);
-    LOGINF("[main] ipset ip4 setname: %s", g_ipset_setname4);
-    LOGINF("[main] ipset ip6 setname: %s", g_ipset_setname6);
+    LOGINF("[main] nftables ip4 setname: %s", g_set_setname4);
+    LOGINF("[main] nftables ip6 setname: %s", g_set_setname6);
     LOGINF("[main] dns query timeout: %ld seconds", g_upstream_timeout_sec);
     if (g_gfwlist_fname) LOGINF("[main] gfwlist entries count: %zu", dnl_init(g_gfwlist_fname, true));
     if (g_chnlist_fname) LOGINF("[main] chnlist entries count: %zu", dnl_init(g_chnlist_fname, false));
@@ -517,8 +517,8 @@ int main(int argc, char *argv[]) {
     if (g_reuse_port) LOGINF("[main] enable `SO_REUSEPORT` feature");
     if (g_verbose) LOGINF("[main] print the verbose running log");
 
-    /* init ipset netlink socket */
-    ipset_init_nlsocket();
+    /* init nftables context */
+    nft_create_ctx();
 
     /* create listen socket */
     g_bind_sockfd = new_udp_socket(g_bind_skaddr.sin6_family);

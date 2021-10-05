@@ -5,12 +5,12 @@
 #include <stdbool.h>
 #undef _GNU_SOURCE
 
-/* ipset setname max len */
-#define IPSET_MAXNAMELEN 32 /* including '\0' */
+/* nftables setname max len */
+#define SET_MAXNAMELEN 32 /* including '\0' */
 
 /* global variable declaration */
 extern bool g_noip_as_chnip; /* used by dnsutils.h */
-extern char g_ipset_setname4[IPSET_MAXNAMELEN]; /* used by netutils.h */
-extern char g_ipset_setname6[IPSET_MAXNAMELEN]; /* used by netutils.h */
+extern char g_set_setname4[SET_MAXNAMELEN]; /* used by netutils.h */
+extern char g_set_setname6[SET_MAXNAMELEN]; /* used by netutils.h */
 
 #endif

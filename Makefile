@@ -1,6 +1,7 @@
 CC = gcc
 CFLAGS = -std=c99 -Wall -Wextra -O2
 SRCS = chinadns.c dnsutils.c dnlutils.c netutils.c
+LIBS += -lnftables
 OBJS = $(SRCS:.c=.o)
 MAIN = chinadns-ng
 DESTDIR = /usr/local/bin
@@ -20,7 +21,7 @@ clean:
 	$(RM) *.o $(MAIN)
 
 $(MAIN): $(OBJS)
-	$(CC) $(CFLAGS) -s -o $(MAIN) $(OBJS)
+	$(CC) $(CFLAGS) -s -o $(MAIN) $(OBJS) $(LIBS)
 
 .c.o:
 	$(CC) $(CFLAGS) -c $< -o $@

@@ -94,8 +94,8 @@ static bool dns_packet_check(const void *packet_buf, ssize_t packet_len, char *n
     return true;
 }
 
-/* check the ipaddr of the first A/AAAA record is in `chnroute` ipset */
-static bool dns_ipset_check(const void *packet_ptr, const void *ans_ptr, ssize_t ans_len) {
+/* check the ipaddr of the first A/AAAA record is in `chnroute` nftables set */
+static bool dns_nft_set_check(const void *packet_ptr, const void *ans_ptr, ssize_t ans_len) {
     const dns_header_t *header = packet_ptr;
 
     /* count number of answers */
@@ -103,7 +103,7 @@ static bool dns_ipset_check(const void *packet_ptr, const void *ans_ptr, ssize_t
 
     /* check dns packet length */
     if (ans_len < answer_count * ((ssize_t)sizeof(dns_record_t) + 1)) {
-        LOGERR("[dns_ipset_check] the format of the dns packet is incorrect");
+        LOGERR("[dns_nft_set_check] the format of the dns packet is incorrect");
         return false;
     }
 
@@ -119,20 +119,20 @@ static bool dns_ipset_check(const void *packet_ptr, const void *ans_ptr, ssize_t
                 ans_ptr += 2;
                 ans_len -= 2;
                 if (ans_len < (ssize_t)sizeof(dns_record_t)) {
-                    LOGERR("[dns_ipset_check] the format of the dns packet is incorrect");
+                    LOGERR("[dns_nft_set_check] the format of the dns packet is incorrect");
                     return false;
                 }
                 break;
             }
             if (label_len > DNS_DNAME_LABEL_MAXLEN) {
-                LOGERR("[dns_ipset_check] the length of the domain name label is too long");
+                LOGERR("[dns_nft_set_check] the length of the domain name label is too long");
                 return false;
             }
             if (label_len == 0) {
                 ++ans_ptr;
                 --ans_len;
                 if (ans_len < (ssize_t)sizeof(dns_record_t)) {
-                    LOGERR("[dns_ipset_check] the format of the dns packet is incorrect");
+                    LOGERR("[dns_nft_set_check] the format of the dns packet is incorrect");
                     return false;
                 }
                 break;
@@ -140,38 +140,38 @@ static bool dns_ipset_check(const void *packet_ptr, const void *ans_ptr, ssize_t
             ans_ptr += label_len + 1;
             ans_len -= label_len + 1;
             if (ans_len < (ssize_t)sizeof(dns_record_t) + 1) {
-                LOGERR("[dns_ipset_check] the format of the dns packet is incorrect");
+                LOGERR("[dns_nft_set_check] the format of the dns packet is incorrect");
                 return false;
             }
         }
         const dns_record_t *record = ans_ptr;
         if (ntohs(record->rclass) != DNS_CLASS_INTERNET) {
-            LOGERR("[dns_ipset_check] only supports standard internet query class");
+            LOGERR("[dns_nft_set_check] only supports standard internet query class");
             return false;
         }
         uint16_t rdatalen = ntohs(record->rdatalen);
         if (ans_len < (ssize_t)sizeof(dns_record_t) + rdatalen) {
-            LOGERR("[dns_ipset_check] the format of the dns packet is incorrect");
+            LOGERR("[dns_nft_set_check] the format of the dns packet is incorrect");
             return false;
         }
         switch (ntohs(record->rtype)) {
             case DNS_RECORD_TYPE_A:
                 if (rdatalen != IPV4_BINADDR_LEN) {
-                    LOGERR("[dns_ipset_check] the format of the dns packet is incorrect");
+                    LOGERR("[dns_nft_set_check] the format of the dns packet is incorrect");
                     return false;
                 }
-                return ipset_addr_is_exists(record->rdataptr, true); /* in chnroute? */
+                return nft_addr_is_exists(record->rdataptr, true); /* in chnroute? */
             case DNS_RECORD_TYPE_AAAA:
                 if (rdatalen != IPV6_BINADDR_LEN) {
-                    LOGERR("[dns_ipset_check] the format of the dns packet is incorrect");
+                    LOGERR("[dns_nft_set_check] the format of the dns packet is incorrect");
                     return false;
                 }
-                return ipset_addr_is_exists(record->rdataptr, false); /* in chnroute6? */
+                return nft_addr_is_exists(record->rdataptr, false); /* in chnroute6? */
             default:
                 ans_ptr += sizeof(dns_record_t) + rdatalen;
                 ans_len -= sizeof(dns_record_t) + rdatalen;
                 if (i != answer_count - 1 && ans_len < (ssize_t)sizeof(dns_record_t) + 1) {
-                    LOGERR("[dns_ipset_check] the format of the dns packet is incorrect");
+                    LOGERR("[dns_nft_set_check] the format of the dns packet is incorrect");
                     return false;
                 }
         }
@@ -188,8 +188,8 @@ bool dns_query_check(const void *packet_buf, ssize_t packet_len, char *name_buf,
 }
 
 /* check dns reply, `name_buf` used to get domain name, return true if accept */
-bool dns_reply_check(const void *packet_buf, ssize_t packet_len, char *name_buf, bool chk_ipset) {
+bool dns_reply_check(const void *packet_buf, ssize_t packet_len, char *name_buf, bool check_set) {
     const void *answer_ptr = NULL;
     if (!dns_packet_check(packet_buf, packet_len, name_buf, false, &answer_ptr)) return false;
-    return chk_ipset ? dns_ipset_check(packet_buf, answer_ptr, packet_len - (answer_ptr - packet_buf)) : true;
+    return check_set ? dns_nft_set_check(packet_buf, answer_ptr, packet_len - (answer_ptr - packet_buf)) : true;
 }
