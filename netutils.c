@@ -27,6 +27,7 @@ static char   g_nft_cmdbuffer6[MSGBUFFER_MAXLEN]    = {0};
 static char  *g_nft_cmdbuffer_start                 = NULL; // [first byte after 0x]
 static char  *g_nft_cmdbuffer6_start                = NULL;
 static char   g_hex_string[32 + 1]                  = {0};
+static FILE  *g_dev_null                            = NULL;
 
 
 /* setsockopt(IPV6_V6ONLY) */
@@ -150,12 +151,13 @@ void nft_create_ctx(void) {
         return;
     }
 
-    // if (!nft_ctx_buffer_error(g_nft)) {
-    //     LOGERR("[nft_create_ctx] failed to initialize nft error buffer");
-    //     nft_ctx_free(g_nft);
-    //     g_nft = NULL;
-    //     return;
-    // }
+    g_dev_null = fopen("/dev/null", "w");
+    if (nft_ctx_set_output(g_nft, g_dev_null) || nft_ctx_set_error(g_nft, g_dev_null)) {
+        LOGERR("[nft_create_ctx] failed to set output and error to /dev/null");
+        nft_ctx_free(g_nft);
+        g_nft = NULL;
+        return;
+    }
 
     if (strlen(g_set_setname4) > 0) {
         sprintf(g_nft_cmdbuffer, "get element %s {0x00000000}", g_set_setname4);
