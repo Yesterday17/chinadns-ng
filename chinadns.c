@@ -345,7 +345,9 @@ static void handle_local_packet(void) {
         LOGINF("[handle_local_packet] query [%s] from %s#%hu (%hu)", g_domain_name_buffer, g_ipaddrstring_buffer, source_port, g_current_unique_msgid);
     }
 
-    if (g_no_ipv6_query && qtype == DNS_RECORD_TYPE_AAAA) {
+    uint8_t dnlmatch_ret = (g_gfwlist_fname || g_chnlist_fname) ? dnl_ismatch(g_domain_name_buffer, g_gfwlist_first) : DNL_MRESULT_NOMATCH;
+
+    if (g_no_ipv6_query && dnlmatch_ret != DNL_MRESULT_CHNLIST && qtype == DNS_RECORD_TYPE_AAAA) {
         IF_VERBOSE LOGINF("[handle_local_packet] reply [%s] without answer (by ipv6 filter)", g_domain_name_buffer);
         dns_header_t *header = (dns_header_t *)g_socket_buffer;
         header->qr = DNS_QR_REPLY;
@@ -358,7 +360,6 @@ static void handle_local_packet(void) {
     dns_header_t *dns_header = (dns_header_t *)g_socket_buffer;
     uint16_t origin_msgid = dns_header->id;
     dns_header->id = unique_msgid; /* replace with new msgid */
-    uint8_t dnlmatch_ret = (g_gfwlist_fname || g_chnlist_fname) ? dnl_ismatch(g_domain_name_buffer, g_gfwlist_first) : DNL_MRESULT_NOMATCH;
 
     for (int i = 0; i < SERVER_MAXCOUNT; ++i) {
         if (g_remote_sockfds[i] < 0) continue;
