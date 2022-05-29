@@ -152,7 +152,7 @@ void nft_create_ctx(void) {
     }
 
     g_dev_null = fopen("/dev/null", "w");
-    if (nft_ctx_set_output(g_nft, g_dev_null) || nft_ctx_set_error(g_nft, g_dev_null)) {
+    if (nft_ctx_set_output(g_nft, g_dev_null) == NULL || nft_ctx_set_error(g_nft, g_dev_null) == NULL) {
         LOGERR("[nft_create_ctx] failed to set output and error to /dev/null");
         nft_ctx_free(g_nft);
         g_nft = NULL;
