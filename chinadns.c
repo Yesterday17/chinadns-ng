@@ -351,7 +351,7 @@ static void handle_local_packet(void) {
         IF_VERBOSE LOGINF("[handle_local_packet] reply [%s] without answer (by ipv6 filter)", g_domain_name_buffer);
         dns_header_t *header = (dns_header_t *)g_socket_buffer;
         header->qr = DNS_QR_REPLY;
-        header->rcode = DNS_RCODE_REFUSED;
+        header->rcode = DNS_RCODE_NOERROR;
         sendto(g_bind_sockfd, g_socket_buffer, packet_len, 0, (void *)&source_addr, source_addrlen);
         return;
     }
